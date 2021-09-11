@@ -1,0 +1,18 @@
+modules:
+  macro:
+    - key: minutes-creater
+      function: main
+      title: Minutes Creater
+      description: create meeting minutes automatically
+  function:
+    - key: main
+      handler: index.run
+app:
+  id: ari:cloud:ecosystem::app/f3fe1b29-bf54-4e53-9bd0-141670617b6c
+permissions:
+  scopes: []
+  external:
+    fetch:
+      backend:
+        - '*.debater.res.ibm.com'
+
