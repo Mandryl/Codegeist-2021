@@ -175,7 +175,7 @@ const App = () => {
 
 const AGREE_MARKER = "0x1F642";
 const DISAGREE_MARKER = "0x1F914";
-const NEUTRAL_MARKER = "0x1F636";
+const NEUTRAL_MARKER = "0xE0020";
 
 const polarityDetect = (agree, clusters, cIndex, sIndex) => {
   let index = sIndex;
