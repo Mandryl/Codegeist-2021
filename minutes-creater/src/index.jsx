@@ -85,10 +85,10 @@ const matchAgendaWithCluster = async (agenda, clusters) => {
   return newClusters;
 }
 
-const TIME_DESC = "Note: It will take a few minutes to complete the execution."
-const AGENDA_DESC = "Please input each item of agenda in one line.";
-const TRANSCRIPTION_DESC = "Please input each sentnce in one line.";
-const CANCEL_DESC = "The execution was cancelled. Please re-run Minutes Creater."
+const TIME_DESC = "Note: It will take a few minutes to this execution."
+const AGENDA_DESC = "Please input each item of agenda per line.";
+const TRANSCRIPTION_DESC = "Please input each sentence per line.";
+const CANCEL_DESC = "The execution was cancelled. Please re-run Minutes Creator."
 
 const App = () => {
   const [headers, setHeaders] = useState([]);
@@ -115,11 +115,11 @@ const App = () => {
   return (
     <Fragment>
       {open && (
-        <ModalDialog header="Meeting Minutes Creater" onClose={onClose}>
+        <ModalDialog header="Minutes Creator" onClose={onClose}>
           <Text><Strong>{TIME_DESC}</Strong></Text>
           <Form onSubmit={onSubmit} submitButtonText="Create Minutes">
-            <TextArea label="Meeting Agenda" name="agenda" isRequired="true" description={AGENDA_DESC} />
-            <TextArea label="Meeting Transcription" name="transcription" isRequired="true" description={TRANSCRIPTION_DESC} />
+            <TextArea label="Agenda Items" name="agenda" isRequired="true" description={AGENDA_DESC} />
+            <TextArea label="Meeting Transcript" name="transcription" isRequired="true" description={TRANSCRIPTION_DESC} />
           </Form>
         </ModalDialog>
       )}

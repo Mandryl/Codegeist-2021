@@ -1,8 +1,8 @@
 modules:
   macro:
-    - key: minutes-creater
+    - key: minutes-creator
       function: main
-      title: Minutes Creater
+      title: Minutes Creator
       description: create meeting minutes automatically
   function:
     - key: main
