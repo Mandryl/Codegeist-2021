@@ -4,6 +4,7 @@ import { fetch } from "@forge/api";
 const CLUSTERING_URL =
   "https://clustering.debater.res.ibm.com/api/public/clustering";
 const CLAIM_DETECT_URL = "https://claim-sentence.debater.res.ibm.com/score/";
+const PROCON_URL = "https://pro-con.debater.res.ibm.com/score/";
 
 const debaterFetch = async (url, body) => {
   const response = await fetch(url, {
@@ -56,13 +57,13 @@ const matchAgendaWithCluster = async (agenda, clusters) => {
   const newClusters = [];
   const selected = new Set();
 
-  for(const item of agenda){
+  for (const item of agenda) {
     const promises = [];
-    for(let i = 0, len = clusters.length; i < len; ++i){
+    for (let i = 0, len = clusters.length; i < len; ++i) {
       if (selected.has(i)) {
         promises.push(Promise.resolve([-1]));
       }
-      else{
+      else {
         promises.push(claimDetect(item, clusters[i]));
       }
     }
@@ -85,6 +86,21 @@ const matchAgendaWithCluster = async (agenda, clusters) => {
   return newClusters;
 }
 
+const procon = async (topics, matchedClusters) => {
+  const pairs = [];
+  topics.forEach((topic, index) => {
+    matchedClusters[index].forEach(sentence => {
+      pairs.push([topic, sentence]);
+    })
+  })
+  const body = {
+    "sentence_topic_pairs": pairs
+  };
+  const result = await debaterFetch(PROCON_URL, body);
+
+  return result;
+}
+
 const TIME_DESC = "Note: It will take a few minutes to this execution."
 const AGENDA_DESC = "Please input each item of agenda per line.";
 const TRANSCRIPTION_DESC = "Please input each sentence per line.";
@@ -95,16 +111,31 @@ const App = () => {
   const [clusters, setClusters] = useState([[]]);
   const [open, setOpen] = useState(true);
   const [show, setShow] = useState(true);
+  const [agree, setAgree] = useState([]);
 
   const onSubmit = async (formData) => {
     setOpen(false);
     setShow(true);
+
     const agenda = formData.agenda.split("\n");
     setHeaders(agenda);
+
     const transcription = formData.transcription.split("\n");
     const clusteringResult = await clustering(transcription, agenda.length);
+
     const matchedClusters = await matchAgendaWithCluster(agenda, clusteringResult);
     setClusters(matchedClusters);
+
+    const proconResult = await procon(agenda, matchedClusters);
+    setAgree(
+      proconResult.map((result) => {
+        let bigger = (result.pro > result.con) ? "pro" : "con";
+        if (result[bigger] < result["neutral"]) {
+          bigger = "neutral";
+        }
+        return bigger;
+      })
+    );
   };
 
   const onClose = () => {
@@ -125,11 +156,11 @@ const App = () => {
       )}
       {(!open && show) && (
         <Fragment>
-          {clusters.map((cluster, index) => (
+          {clusters.map((cluster, cindex) => (
             <Fragment>
-              <Heading>{headers[index]}</Heading>
-              {cluster.map((sentence) => (
-                <Text>{sentence}</Text>
+              <Heading>{headers[cindex]}</Heading>
+              {cluster.map((sentence, sindex) => (
+                <Text>{polarityDetect(agree,clusters,cindex,sindex)} {sentence}</Text>
               ))}
             </Fragment>
           ))}
@@ -141,5 +172,23 @@ const App = () => {
     </Fragment>
   );
 };
+
+const AGREE_MARKER = "0x1F642";
+const DISAGREE_MARKER = "0x1F914";
+const NEUTRAL_MARKER = "0x1F636";
+
+const polarityDetect = (agree, clusters, cIndex, sIndex) => {
+  let index = sIndex;
+  for (let i = 0; i < cIndex; ++i) {
+    index += clusters[i].length;
+  }
+  let marker;
+  switch (agree[index]) {
+    case "pro": marker = AGREE_MARKER; break;
+    case "con": marker = DISAGREE_MARKER; break;
+    default: marker = NEUTRAL_MARKER;
+  }
+  return String.fromCodePoint(marker);
+}
 
 export const run = render(<Macro app={<App />} />);
