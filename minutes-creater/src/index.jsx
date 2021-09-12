@@ -1,19 +1,12 @@
-import ForgeUI, { useState, render, Fragment, Macro, Text, Heading } from "@forge/ui";
+import ForgeUI, { useState, render, Fragment, Macro, Text, Heading, ModalDialog, Form, TextArea, Strong } from "@forge/ui";
 import { fetch } from "@forge/api";
 
-const CLUSTER_NUM = 2;
 const CLUSTERING_URL =
   "https://clustering.debater.res.ibm.com/api/public/clustering";
+const CLAIM_DETECT_URL = "https://claim-sentence.debater.res.ibm.com/score/";
 
-const clustering = async (sentences) => {
-  const body = {
-    text_preprocessing: ["stemming"],
-    embedding_method: "tf",
-    clustering_method: "sib",
-    num_of_clusters: CLUSTER_NUM,
-    arguments: sentences,
-  };
-  const response = await fetch(CLUSTERING_URL, {
+const debaterFetch = async (url, body) => {
+  const response = await fetch(url, {
     method: "post",
     body: JSON.stringify(body),
     headers: {
@@ -22,10 +15,19 @@ const clustering = async (sentences) => {
     },
   });
 
+  return await response.json();
+}
 
-  const json = await response.json();
-  const result =  json.arguments_id_and_distance_per_cluster;
-
+const clustering = async (sentences, clusterNum) => {
+  const body = {
+    text_preprocessing: ["stemming"],
+    embedding_method: "tf",
+    clustering_method: "sib",
+    num_of_clusters: clusterNum,
+    arguments: sentences,
+  };
+  const json = await debaterFetch(CLUSTERING_URL, body);
+  const result = json.arguments_id_and_distance_per_cluster;
 
   const clusters = result.map((elem) => {
     return elem.argumentInfoContainers.map(
@@ -36,36 +38,106 @@ const clustering = async (sentences) => {
   return clusters;
 };
 
+const claimDetect = async (topic, sentences) => {
+  const pairs = sentences.map((sentence) => [topic, sentence]);
+  const body = {
+    "sentence_topic_pairs": pairs
+  };
+  const result = await debaterFetch(CLAIM_DETECT_URL, body);
+
+  return result;
+};
+
+const average = (array) => {
+  return array.reduce((i, j) => (i + j)) / array.length;
+}
+
+const matchAgendaWithCluster = async (agenda, clusters) => {
+  const newClusters = [];
+  const selected = new Set();
+
+  for(const item of agenda){
+    const promises = [];
+    for(let i = 0, len = clusters.length; i < len; ++i){
+      if (selected.has(i)) {
+        promises.push(Promise.resolve([-1]));
+      }
+      else{
+        promises.push(claimDetect(item, clusters[i]));
+      }
+    }
+
+    let bestScore = 0;
+    let bestIndex = 0;
+    const scores = await Promise.all(promises);
+    scores.forEach((score, index) => {
+      const scoreAVG = average(score);
+      if (bestScore < scoreAVG) {
+        bestScore = scoreAVG;
+        bestIndex = index;
+      }
+    });
+
+    newClusters.push(clusters[bestIndex]);
+    selected.add(bestIndex);
+  }
+
+  return newClusters;
+}
+
+const TIME_DESC = "Note: It will take a few minutes to complete the execution."
+const AGENDA_DESC = "Please input each item of agenda in one line.";
+const TRANSCRIPTION_DESC = "Please input each sentnce in one line.";
+const CANCEL_DESC = "The execution was cancelled. Please re-run Minutes Creater."
+
 const App = () => {
-  const script = [
-    "The cat (Felis catus) is a small carnivorous mammal",
-    "The origin of the domestic dog includes the dogs evolutionary divergence from the wolf",
-    "As of 2017, the domestic cat was the second-most popular pet in the U.S.",
-    "Domestic dogs have been selectively bred for millennia for various behaviors, sensory capabilities, and physical attributes.",
-    "Cats are similar in anatomy to the other felid species",
-    "Dogs are highly variable in height and weight.",
-  ];
+  const [headers, setHeaders] = useState([]);
+  const [clusters, setClusters] = useState([[]]);
+  const [open, setOpen] = useState(true);
+  const [show, setShow] = useState(true);
 
-  /*
-  const [json] = useState(async () => await clustering(script));
-  */
+  const onSubmit = async (formData) => {
+    setOpen(false);
+    setShow(true);
+    const agenda = formData.agenda.split("\n");
+    setHeaders(agenda);
+    const transcription = formData.transcription.split("\n");
+    const clusteringResult = await clustering(transcription, agenda.length);
+    const matchedClusters = await matchAgendaWithCluster(agenda, clusteringResult);
+    setClusters(matchedClusters);
+  };
 
-  const [clusters] = useState(async () => await clustering(script));
-
-  // return (
-  //   <Text>{JSON.stringify(json)}</Text>
-  // );
+  const onClose = () => {
+    setOpen(false);
+    setShow(false);
+  }
 
   return (
     <Fragment>
-      {clusters.map((cluster, index) => (
+      {open && (
+        <ModalDialog header="Meeting Minutes Creater" onClose={onClose}>
+          <Text><Strong>{TIME_DESC}</Strong></Text>
+          <Form onSubmit={onSubmit} submitButtonText="Create Minutes">
+            <TextArea label="Meeting Agenda" name="agenda" isRequired="true" description={AGENDA_DESC} />
+            <TextArea label="Meeting Transcription" name="transcription" isRequired="true" description={TRANSCRIPTION_DESC} />
+          </Form>
+        </ModalDialog>
+      )}
+      {(!open && show) && (
         <Fragment>
-          <Heading>Agenda {index}</Heading>
-          {cluster.map((sentence) => (
-            <Text>{sentence}</Text>
+          {clusters.map((cluster, index) => (
+            <Fragment>
+              <Heading>{headers[index]}</Heading>
+              {cluster.map((sentence) => (
+                <Text>{sentence}</Text>
+              ))}
+            </Fragment>
           ))}
         </Fragment>
-      ))}
+      )}
+      {!show && (
+        <Text><Strong>{CANCEL_DESC}</Strong></Text>
+      )}
     </Fragment>
   );
 };
