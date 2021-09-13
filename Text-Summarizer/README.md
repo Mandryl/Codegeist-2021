@@ -9,10 +9,8 @@ See [Set up Forge](https://developer.atlassian.com/platform/forge/set-up-forge/)
 ### ■IBM Devater
 Please [login to Debater.ibm.com](https://early-access-program.debater.res.ibm.com//) and issue APIKEY
 
-### ■npm module 
+### ■Use npm module 
  - @forge/ui
- - @forge/api
- - html-to-text
 
 ## Quick start
 Once you have logged into the CLI (forge login), follow the steps below to install the app onto your site:
