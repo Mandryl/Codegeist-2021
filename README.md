@@ -1,7 +1,7 @@
 # Codegeist-2021-ForgeApp
 
 ## Prerequisite
- - Forge(　Node.js (npm))
+ - Forge(Node.js)
 
 ## Features
  - [minutes-creater](https://github.com/Mandryl/Codegeist-2021/tree/main/minutes-creater)
