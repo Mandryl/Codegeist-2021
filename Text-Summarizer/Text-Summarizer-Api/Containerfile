@@ -1,0 +1,21 @@
+FROM docker.io/amazon/aws-lambda-python:3.7
+ARG FUNCTION_DIR="/var/task"
+
+WORKDIR ${FUNCTION_DIR}
+
+# install prerequisite libraries
+COPY pyproject.toml ${FUNCTION_DIR}
+COPY vendor/python_api/ ${FUNCTION_DIR}/vendor/python_api
+RUN yum -y groupinstall "Development Tools" && \
+    yum -y install kernel-devel kernel-headers && \
+    yum -y clean all && \
+    # install with poetry
+    curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python - && \
+    source $HOME/.poetry/env && \
+    python -m pip install --upgrade pip setuptools wheel --no-cache-dir && \
+    poetry export --without-hashes -f requirements.txt -o requirements.txt --with-credentials && \
+    python -m pip install -r requirements.txt --no-cache-dir
+
+COPY handler.py ${FUNCTION_DIR}
+
+CMD ["handler.handle_key_points_analysis_request"]

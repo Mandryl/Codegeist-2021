@@ -1,0 +1,2 @@
+doclerkTextSummarizer:
+  component: "@sls-next/serverless-component@3.3.0"
