@@ -1,4 +1,4 @@
-import ForgeUI, { useState, render, Fragment, Macro, Text, Heading, ModalDialog, Form, TextArea, Strong } from "@forge/ui";
+import ForgeUI, { useState, render, Fragment, Macro, MacroConfig, Text, Heading, ModalDialog, Form, TextArea, Strong } from "@forge/ui";
 import { fetch } from "@forge/api";
 
 const CLUSTERING_URL =
@@ -107,6 +107,8 @@ const TRANSCRIPTION_DESC = "Please input each sentence per line.";
 const CANCEL_DESC = "The execution was cancelled. Please re-run Minutes Creator."
 
 const App = () => {
+  const config = useConfig();
+  
   const [headers, setHeaders] = useState([]);
   const [clusters, setClusters] = useState([[]]);
   const [open, setOpen] = useState(true);
@@ -128,15 +130,27 @@ const App = () => {
 
     const proconResult = await procon(agenda, matchedClusters);
     setAgree(
-      proconResult.map((result) => {
-        let bigger = (result.pro > result.con) ? "pro" : "con";
-        if (result[bigger] < result["neutral"]) {
-          bigger = "neutral";
-        }
-        return bigger;
-      })
+      proconResult.map(polarityDetectNew)
     );
   };
+
+  const polarityDetectOld = (result) => {
+    let bigger = (result.pro > result.con) ? "pro" : "con";
+    if (result[bigger] < result["neutral"]) {
+      bigger = "neutral";
+    }
+    return bigger;
+  }
+
+  const POLARITY_TH = 0.5;
+  const polarityDetectNew = (result)=>{
+    const score = result.pro - result.con;
+    switch(score){
+      case score >= POLARITY_TH: return "pro";
+      case score <= -POLARITY_TH: return "con";
+      default: return "neutral";
+    }
+  }
 
   const onClose = () => {
     setOpen(false);
@@ -160,7 +174,7 @@ const App = () => {
             <Fragment>
               <Heading>{headers[cindex]}</Heading>
               {cluster.map((sentence, sindex) => (
-                <Text>{polarityDetect(agree,clusters,cindex,sindex)} {sentence}</Text>
+                <Text>{polarityMark(agree,clusters,cindex,sindex)} {sentence}</Text>
               ))}
             </Fragment>
           ))}
@@ -177,7 +191,7 @@ const AGREE_MARKER = "0x1F642";
 const DISAGREE_MARKER = "0x1F914";
 const NEUTRAL_MARKER = "0xE0020";
 
-const polarityDetect = (agree, clusters, cIndex, sIndex) => {
+const polarityMark = (agree, clusters, cIndex, sIndex) => {
   let index = sIndex;
   for (let i = 0; i < cIndex; ++i) {
     index += clusters[i].length;
@@ -192,3 +206,15 @@ const polarityDetect = (agree, clusters, cIndex, sIndex) => {
 }
 
 export const run = render(<Macro app={<App />} />);
+
+
+const Config = () => {
+  return (
+    <MacroConfig>
+      <TextField name="name" label="Pet name" />
+      <TextField name="age" label="Pet age" />
+    </MacroConfig>
+  );
+};
+
+export const config = render(<Config />);
