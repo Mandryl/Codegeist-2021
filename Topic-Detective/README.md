@@ -4,8 +4,10 @@ See [developer.atlassian.com/platform/forge/](https://developer.atlassian.com/pl
 
 ## Requirements
 
-See [Set up Forge](https://developer.atlassian.com/platform/forge/set-up-forge/) for instructions to get set up.
 
+## ■Use npm module 
+ - @forge/ui
+ - 
 ## Quick start
 
 
