@@ -1,6 +1,0 @@
-interface WebTriggerAPI {
-    getUrl: (webTriggerModuleKey: string) => Promise<string>;
-}
-export declare const webTrigger: WebTriggerAPI;
-export {};
-//# sourceMappingURL=index.d.ts.map
