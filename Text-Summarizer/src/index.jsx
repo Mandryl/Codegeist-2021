@@ -9,8 +9,10 @@ const App = () => {
   }
 
   return (
-    <ModalDialog header="Text-Summarizer" onClose={() => setOpen(false)}>
-     <Text> <Link href="https://d1poengx6x8rto.cloudfront.net/">Jump</Link></Text>
+    <ModalDialog header="Text Summarizer" onClose={() => setOpen(false)}>
+     <Text> 
+       <Link href="https://d1poengx6x8rto.cloudfront.net/" openNewTab="true">Go to Text Summarizer(External Link)</Link>
+      </Text>
     </ModalDialog>
   );
 };
