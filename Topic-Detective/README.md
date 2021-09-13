@@ -1,4 +1,4 @@
-# Topic-Detectiv
+# Topic-Detective
 
 See [developer.atlassian.com/platform/forge/](https://developer.atlassian.com/platform/forge) for documentation and tutorials explaining Forge.
 
