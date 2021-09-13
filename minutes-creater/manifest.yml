@@ -4,13 +4,17 @@ modules:
       function: main
       title: Minutes Creator
       description: create meeting minutes automatically
+      config:
+        function: config-function-key
   function:
     - key: main
       handler: index.run
+    - key: config-function-key
+      handler: index.config
 app:
   id: ari:cloud:ecosystem::app/f3fe1b29-bf54-4e53-9bd0-141670617b6c
 permissions:
-  scopes: []
+  scopes: ['storage:app']
   external:
     fetch:
       backend:
