@@ -4,7 +4,7 @@ import ForgeUI, {
   Button,
   Form,
   Fragment,
-  TextArea,
+  TextField,
   CheckboxGroup,
   Checkbox,
   useState,
@@ -152,13 +152,13 @@ const App = () => {
         relatedsentenceList.push("・ " + allsentence[i])
       }
     })
-    setRelatedSentence(relatedsentenceList.join);
+    setRelatedSentence(relatedsentenceList.join());
   };  
 
   const cancel = () => {
     setSentenceTitle(undefined);
     setRelatedSentence(undefined);
-    setScore(undefined)
+    setScore(undefined);
   };
   
   const actionButtons = [<Button text="ResultClear" onClick={cancel} />,];
@@ -166,9 +166,9 @@ const App = () => {
   
   return (
     <Fragment>
-      <ModalDialog header="Sentence evaluation" width="x-large" onClose={() => setOpen(false)}>
+      <ModalDialog header="Topic Detective" width="x-large" onClose={() => setOpen(false)}>
         <Form onSubmit={onSubmit} actionButtons={actionButtons}>
-          <TextArea name="inputtopic" label="Topic"/>
+          <TextField name="inputtopic" label="Topic"/>
           <CheckboxGroup name="cuttype" label="Sentence Cut Type">
             <Checkbox defaultChecked value="period" label="Period" />
             <Checkbox defaultChecked value="linefeed" label="LineFeed" />
@@ -176,7 +176,7 @@ const App = () => {
         </Form>
         <Text><Strong>■Result</Strong></Text>
         <Text><Strong>{sentencetitle}</Strong></Text>
-        <Text content={`**${relatedSentence}**`} format="markdown"/>
+        <Text content={`${relatedSentence}`} format="markdown"/>
       </ModalDialog>
     </Fragment>
   );
