@@ -10,7 +10,6 @@ import ForgeUI, {
   useState,
   Text,
   Strong,
-  Link,
   ContentAction ,
   ModalDialog,
   useProductContext,
@@ -125,39 +124,33 @@ const App = () => {
   const [score, setScore] = useState();
   const [isOpen, setOpen] = useState(true);
   const [relatedSentence, setRelatedSentence] = useState([]);
-  const [sentencetitle, setSentenceTitle] = useState(undefined);
-  const [test,testbody] = useState(undefined);
   
   const onSubmit = async (formData) => {
     const relatedsentenceList = [];
-    const sententtitle = "<Related Sentences>"
-    const summaryTitle = "<Summary>"
 
-    // tpicInfo(トピック情報)
-    if (formData.inputtopic === null || 
-      formData.inputtopic === undefined){ 
-      setRelatedSentence("null Or undefined");
-      return;
+    // tpicInfo
+    if (formData.inputtopic === null || formData.inputtopic === undefined){ 
+        setRelatedSentence("null Or undefined");
+        return;
     } 
-    // sentenceInfo(センテンス情報)
+
+    // sentenceInfo
     const contentResult = await getContentProperty(context.contentId);
     const allsentence = autoFormattingText(contentResult,formData.cuttype)
     const davaterData = getConvertText(allsentence,formData.inputtopic)
     const scoreResult = await topicScoreDebater(davaterData);
-    testbody(allsentence); 
     setSentenceTitle(sententtitle);
     setScore(scoreResult)
     scoreResult.forEach(function(el,i){
-      if(el >= 0.5){
+      if(el >= 0.7){
         relatedsentenceList.push("・ " + allsentence[i])
       }
     })
-    setRelatedSentence(relatedsentenceList.join());
+    setRelatedSentence(relatedsentenceList);
   };  
 
   const cancel = () => {
-    setSentenceTitle(undefined);
-    setRelatedSentence(undefined);
+    setRelatedSentence([]);
     setScore(undefined);
   };
   
@@ -175,9 +168,14 @@ const App = () => {
           </CheckboxGroup>  
         </Form>
         <Text><Strong>■Result</Strong></Text>
-        <Text><Strong>{sentencetitle}</Strong></Text>
-        <Text content={`${relatedSentence}`} format="markdown"/>
-      </ModalDialog>
+        <Fragment>
+          {
+            relatedSentence.map((element) => (
+              <Text>{element}</Text>
+            ))
+          }
+        </Fragment>
+    </ModalDialog>
     </Fragment>
   );
 };
