@@ -68,7 +68,7 @@ const autoFormattingText = (text,format) =>{
 
   // HTML --> Text成形
   let textResult = convert(text['body']['styled_view']['value'],{
-    wordwrap: 200,
+    wordwrap: 100000,
     selectors: [ 
       { selector: 'a', options: { ignoreHref: true }},
       { selector: 'img', format: 'skip' },
@@ -86,13 +86,12 @@ const autoFormattingText = (text,format) =>{
     }
     splitResult = splitResult.filter(Boolean);
   }else if(format.length == 2){
-    
     format.forEach(function(el,i){
       if(el ==='linefeed'){
         if(tmpText === ""){
           splitResult = textResult.split('\n');
           splitResult = splitResult.filter(Boolean);
-          tmpText = splitResult.join()
+          tmpText = splitResult.join('.')
         }else{
           splitResult = tmpText.split('\n');
           splitResult = splitResult.filter(Boolean);
@@ -101,7 +100,7 @@ const autoFormattingText = (text,format) =>{
         if(tmpText===""){
           splitResult = textResult.split('.');
           splitResult = splitResult.filter(Boolean);
-          tmpText = splitResult.join()
+          tmpText = splitResult.join('.')
         }else{
           splitResult = tmpText.split('.');
           splitResult = splitResult.filter(Boolean);
@@ -124,28 +123,40 @@ const App = () => {
   const [score, setScore] = useState();
   const [isOpen, setOpen] = useState(true);
   const [relatedSentence, setRelatedSentence] = useState([]);
-  
+  const [inputtopic, setInputTopic] = useState();
+  const [outsentent,setOutSentent] = useState();
+  let compflg =false;
   const onSubmit = async (formData) => {
     const relatedsentenceList = [];
 
     // tpicInfo
-    if (formData.inputtopic === null || formData.inputtopic === undefined){ 
-        setRelatedSentence("null Or undefined");
+    if (formData.inputtopic ==="" || formData.inputtopic === null || formData.inputtopic === undefined){ 
+        relatedsentenceList.push("Input is Empty")
+        setRelatedSentence(relatedsentenceList);
         return;
     } 
+    setInputTopic("Input：" + formData.inputtopic);
 
     // sentenceInfo
     const contentResult = await getContentProperty(context.contentId);
     const allsentence = autoFormattingText(contentResult,formData.cuttype)
     const davaterData = getConvertText(allsentence,formData.inputtopic)
     const scoreResult = await topicScoreDebater(davaterData);
-    setSentenceTitle(sententtitle);
     setScore(scoreResult)
+
     scoreResult.forEach(function(el,i){
       if(el >= 0.7){
         relatedsentenceList.push("・ " + allsentence[i])
+        compflg = true;
       }
     })
+    if(compflg===false){
+      relatedsentenceList.push("No Relevant Sentence");
+      setOutSentent("Output：")
+      setRelatedSentence(relatedsentenceList);
+      return
+    }
+    setOutSentent("Output：")
     setRelatedSentence(relatedsentenceList);
   };  
 
@@ -168,9 +179,10 @@ const App = () => {
           </CheckboxGroup>  
         </Form>
         <Text><Strong>■Result</Strong></Text>
+        <Text><Strong>{inputtopic}</Strong></Text>
+        <Text><Strong>{outsentent}</Strong></Text>
         <Fragment>
-          {
-            relatedSentence.map((element) => (
+          { relatedSentence && relatedSentence.map((element) => (
               <Text>{element}</Text>
             ))
           }
