@@ -40,7 +40,7 @@ const clustering = async (sentences, clusterNum) => {
 };
 
 const claimDetect = async (topic, sentences) => {
-  const pairs = sentences.map((sentence) => [topic, sentence]);
+  const pairs = sentences.map((sentence) => [sentence,topic]);
   const body = {
     "sentence_topic_pairs": pairs
   };
@@ -90,7 +90,7 @@ const procon = async (topics, matchedClusters) => {
   const pairs = [];
   topics.forEach((topic, index) => {
     matchedClusters[index].forEach(sentence => {
-      pairs.push([topic, sentence]);
+      pairs.push([sentence, topic]);
     })
   })
   const body = {
