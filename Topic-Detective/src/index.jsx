@@ -60,12 +60,14 @@ const getConvertText = (format,sentence) =>{
 } 
 
 // Json成形関数
-const autoFormattingText = (text,format) =>{
+const autoFormattingText = (text) =>{
   const { convert } = require('html-to-text');
   let tmpText = ""
   let splitResult = []
   let formatResult = []
-
+  let fillterResult = []
+  let periodFillterResult = []
+  let periodSplitResult = []
   // HTML --> Text成形
   let textResult = convert(text['body']['styled_view']['value'],{
     wordwrap: 100000,
@@ -76,43 +78,19 @@ const autoFormattingText = (text,format) =>{
     ]  
   });
 
-  // Text --> FillterText
-  if(format.length == 1){
-    if(format[0] ==='linefeed'){      
-      splitResult = textResult.split('\n');
-    }
-    if(format[1] ==='period'){
-      splitResult = textResult.split('.');
-    }
-    splitResult = splitResult.filter(Boolean);
-  }else if(format.length == 2){
-    format.forEach(function(el,i){
-      if(el ==='linefeed'){
-        if(tmpText === ""){
-          splitResult = textResult.split('\n');
-          splitResult = splitResult.filter(Boolean);
-          tmpText = splitResult.join('.')
-        }else{
-          splitResult = tmpText.split('\n');
-          splitResult = splitResult.filter(Boolean);
-        } 
-      }else if(el == 'period'){
-        if(tmpText===""){
-          splitResult = textResult.split('.');
-          splitResult = splitResult.filter(Boolean);
-          tmpText = splitResult.join('.')
-        }else{
-          splitResult = tmpText.split('.');
-          splitResult = splitResult.filter(Boolean);
-        }
-      }
-    })
-  }
-  splitResult.forEach(function(el,i){
+  // linefeed
+  fillterResult = textResult.split('\n')
+  splitResult = fillterResult.filter(Boolean);
+  tmpText = splitResult.join('.')
+
+  // period
+  periodFillterResult = tmpText.split('.');
+  periodSplitResult = periodFillterResult.filter(Boolean);
+  periodSplitResult.forEach(function(el,i){
     if(el.length < 3){
       return;
     }else{
-      formatResult.push(el)
+      formatResult.push(el + ".")
     }
   })
   return formatResult;
@@ -124,43 +102,65 @@ const App = () => {
   const [isOpen, setOpen] = useState(true);
   const [relatedSentence, setRelatedSentence] = useState([]);
   const [inputtopic, setInputTopic] = useState();
+  const [inputscoretitle,setInputScore] = useState();
   const [outsentent,setOutSentent] = useState();
-  let compflg =false;
-  const onSubmit = async (formData) => {
-    const relatedsentenceList = [];
+  const [outscoretitle,setOutScore] = useState();
 
-    // tpicInfo
+  let compflg =false;
+  let scoreNumber = 0
+  
+  const onSubmit = async (formData) => {
+    let relatedsentenceList = [];
+    // topicInfo
     if (formData.inputtopic ==="" || formData.inputtopic === null || formData.inputtopic === undefined){ 
-        relatedsentenceList.push("Input is Empty")
-        setRelatedSentence(relatedsentenceList);
-        return;
+      setInputTopic('');
+      setOutSentent('');
+      relatedsentenceList.push("Input：Empty")
+      setRelatedSentence(relatedsentenceList);
+      return;
     } 
-    setInputTopic("Input：" + formData.inputtopic);
+    if(formData.inputscore === ""|| formData.inputscore === null || formData.inputscore === undefined){
+      scoreNumber = 0.65
+    }else{
+      scoreNumber = formData.inputscore
+    }
+    setInputTopic("Input Topic：" + formData.inputtopic);
+    setInputScore("Input Score：" + scoreNumber);
 
     // sentenceInfo
     const contentResult = await getContentProperty(context.contentId);
-    const allsentence = autoFormattingText(contentResult,formData.cuttype)
+    const allsentence = autoFormattingText(contentResult)
     const davaterData = getConvertText(allsentence,formData.inputtopic)
     const scoreResult = await topicScoreDebater(davaterData);
     setScore(scoreResult)
 
     scoreResult.forEach(function(el,i){
-      if(el >= 0.7){
+      if(el >= scoreNumber){
         relatedsentenceList.push("・ " + allsentence[i])
         compflg = true;
       }
     })
+    setRelatedSentence(relatedsentenceList);
+
     if(compflg===false){
       relatedsentenceList.push("No Relevant Sentence");
-      setOutSentent("Output：")
+      setOutSentent("Output Sentence：")
+      setOutScore("Output Score List：")
       setRelatedSentence(relatedsentenceList);
-      return
+      return;
+    }else{
+      setOutSentent("Output Sentence：")
+      setOutScore("Output Score List：")
+      setRelatedSentence(relatedsentenceList);
+      return;
     }
-    setOutSentent("Output：")
-    setRelatedSentence(relatedsentenceList);
   };  
 
   const cancel = () => {
+    setInputTopic('');
+    setInputScore('');
+    setOutSentent('');
+    setOutScore('')
     setRelatedSentence([]);
     setScore(undefined);
   };
@@ -173,13 +173,11 @@ const App = () => {
       <ModalDialog header="Topic Detective" width="x-large" onClose={() => setOpen(false)}>
         <Form onSubmit={onSubmit} actionButtons={actionButtons}>
           <TextField name="inputtopic" label="Topic"/>
-          <CheckboxGroup name="cuttype" label="Sentence Cut Type">
-            <Checkbox defaultChecked value="period" label="Period" />
-            <Checkbox defaultChecked value="linefeed" label="LineFeed" />
-          </CheckboxGroup>  
+          <TextField name="inputscore" label="Score"/>
         </Form>
         <Text><Strong>■Result</Strong></Text>
         <Text><Strong>{inputtopic}</Strong></Text>
+        <Text><Strong>{inputscoretitle}</Strong></Text>
         <Text><Strong>{outsentent}</Strong></Text>
         <Fragment>
           { relatedSentence && relatedSentence.map((element) => (
@@ -187,6 +185,8 @@ const App = () => {
             ))
           }
         </Fragment>
+        <Text><Strong>{ outscoretitle }</Strong></Text>
+        <Text>{ score && JSON.stringify(score)}</Text>
     </ModalDialog>
     </Fragment>
   );
