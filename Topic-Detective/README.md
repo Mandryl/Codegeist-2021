@@ -1,6 +1,4 @@
-# Forge Hello World
-
-This project contains a Forge app written in Javascript that displays `Hello World!` in a Confluence content action. 
+# Topic-Detectiv
 
 See [developer.atlassian.com/platform/forge/](https://developer.atlassian.com/platform/forge) for documentation and tutorials explaining Forge.
 
@@ -10,22 +8,6 @@ See [Set up Forge](https://developer.atlassian.com/platform/forge/set-up-forge/)
 
 ## Quick start
 
-- Modify your app by editing the `src/index.jsx` file.
-
-- Build and deploy your app by running:
-```
-forge deploy
-```
-
-- Install your app in an Atlassian site by running:
-```
-forge install
-```
-
-- Develop your app by running `forge tunnel` to proxy invocations locally:
-```
-forge tunnel
-```
 
 ### Notes
 - Use the `forge deploy` command when you want to persist code changes.
