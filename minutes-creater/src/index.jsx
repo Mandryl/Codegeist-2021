@@ -1,5 +1,20 @@
-import ForgeUI, { useState, render, Fragment, Macro, MacroConfig, Text, Heading, ModalDialog, Form, TextArea, Strong } from "@forge/ui";
-import { fetch } from "@forge/api";
+import ForgeUI, {
+  useState,
+  useConfig,
+  useProductContext,
+  render,
+  Fragment,
+  Macro,
+  MacroConfig,
+  Button,
+  Text,
+  Heading,
+  TextArea,
+  Strong
+} from "@forge/ui";
+import { fetch, storage } from "@forge/api";
+
+import { createHash } from 'crypto'
 
 const CLUSTERING_URL =
   "https://clustering.debater.res.ibm.com/api/public/clustering";
@@ -40,7 +55,7 @@ const clustering = async (sentences, clusterNum) => {
 };
 
 const claimDetect = async (topic, sentences) => {
-  const pairs = sentences.map((sentence) => [sentence,topic]);
+  const pairs = sentences.map((sentence) => [sentence, topic]);
   const body = {
     "sentence_topic_pairs": pairs
   };
@@ -101,91 +116,167 @@ const procon = async (topics, matchedClusters) => {
   return result;
 }
 
-const TIME_DESC = "Note: It will take a few minutes to this execution."
+const TIME_DESC = "Note: It often takes a long time to the execution which overs 10 seconds run time limit of forge."
 const AGENDA_DESC = "Please input each item of agenda per line.";
 const TRANSCRIPTION_DESC = "Please input each sentence per line.";
-const CANCEL_DESC = "The execution was cancelled. Please re-run Minutes Creator."
 
 const App = () => {
   const config = useConfig();
-  
+  const context = useProductContext();
+
   const [headers, setHeaders] = useState([]);
   const [clusters, setClusters] = useState([[]]);
-  const [open, setOpen] = useState(true);
-  const [show, setShow] = useState(true);
   const [agree, setAgree] = useState([]);
 
-  const onSubmit = async (formData) => {
-    setOpen(false);
-    setShow(true);
 
-    const agenda = formData.agenda.split("\n");
-    setHeaders(agenda);
+  const [stored, setStored] = useState(
+    async () => {
+      if (!config) return {};
+      const storedData = await getStoredData(context, config);
+      if (storedData) {
+        setHeaders(storedData.headers);
+        setClusters(storedData.clusters);
+        setAgree(storedData.agree);
+        return storedData;
+      }
+      else {
+        return {};
+      }
+    }
+  )
 
-    const transcription = formData.transcription.split("\n");
-    const clusteringResult = await clustering(transcription, agenda.length);
+  const [showCreate, setShowCreate] = useState(async () => {
+    if (config) {
+      const stored = await isStored(context, config)
+      return !stored;
+    }
+    return true;
+  });
+  const [showDraft, setShowDraft] = useState(async () => {
+    if (config) return await isStored(context, config);
+    return false;
+  });
+  const [showSave, setShowSave] = useState(false);
+  const [showConfigDesc, setShowConfigDesc] = useState(false);
 
-    const matchedClusters = await matchAgendaWithCluster(agenda, clusteringResult);
-    setClusters(matchedClusters);
+  const onClickCreate = async () => {
+    if (isConfigured(config)) {
+      const agenda = config.agenda.split("\n");
+      setHeaders(agenda);
 
-    const proconResult = await procon(agenda, matchedClusters);
-    setAgree(
-      proconResult.map(polarityDetectNew)
-    );
+      const transcription = config.transcription.split("\n");
+      const clusteringResult = await clustering(transcription, agenda.length);
+
+      const matchedClusters = await matchAgendaWithCluster(agenda, clusteringResult);
+      setClusters(matchedClusters);
+
+      const proconResult = await procon(agenda, matchedClusters);
+      setAgree(
+        proconResult.map(polarityDetect)
+      );
+      setShowCreate(false);
+      setShowDraft(true);
+      setShowSave(true);
+    }
+    else {
+      setShowConfigDesc(true);
+    }
   };
 
-  const polarityDetectOld = (result) => {
-    let bigger = (result.pro > result.con) ? "pro" : "con";
-    if (result[bigger] < result["neutral"]) {
-      bigger = "neutral";
-    }
-    return bigger;
-  }
-
-  const POLARITY_TH = 0.5;
-  const polarityDetectNew = (result)=>{
-    const score = result.pro - result.con;
-    switch(score){
-      case score >= POLARITY_TH: return "pro";
-      case score <= -POLARITY_TH: return "con";
-      default: return "neutral";
-    }
-  }
-
-  const onClose = () => {
-    setOpen(false);
-    setShow(false);
+  const onClickSave = async () => {
+    await storeData(context, config, {
+      headers: headers,
+      clusters: clusters,
+      agree: agree
+    });
+    setShowSave(false);
   }
 
   return (
     <Fragment>
-      {open && (
-        <ModalDialog header="Minutes Creator" onClose={onClose}>
-          <Text><Strong>{TIME_DESC}</Strong></Text>
-          <Form onSubmit={onSubmit} submitButtonText="Create Minutes">
-            <TextArea label="Agenda Items" name="agenda" isRequired="true" description={AGENDA_DESC} />
-            <TextArea label="Meeting Transcript" name="transcription" isRequired="true" description={TRANSCRIPTION_DESC} />
-          </Form>
-        </ModalDialog>
+      {showCreate && (
+        <Fragment>
+          <Button
+            text="Create Minutes"
+            icon="vid-play"
+            onClick={onClickCreate}
+          />
+          <Text>{TIME_DESC}</Text>
+        </Fragment>
       )}
-      {(!open && show) && (
+      {showDraft && (
         <Fragment>
           {clusters.map((cluster, cindex) => (
             <Fragment>
               <Heading>{headers[cindex]}</Heading>
               {cluster.map((sentence, sindex) => (
-                <Text>{polarityMark(agree,clusters,cindex,sindex)} {sentence}</Text>
+                <Text>{polarityMark(agree, clusters, cindex, sindex)} {sentence}</Text>
               ))}
             </Fragment>
           ))}
         </Fragment>
       )}
-      {!show && (
-        <Text><Strong>{CANCEL_DESC}</Strong></Text>
+      {showSave && (
+        <Button
+          text="Save Minutes"
+          icon="file"
+          onClick={onClickSave}
+        />
+      )}
+      {showConfigDesc && (
+        <Text><Strong>Configurations aren't set. It's necessary to configure this macro.</Strong></Text>
       )}
     </Fragment>
   );
 };
+
+const isConfigured = (config) => {
+  return config && config.agenda !== ""
+    && config.transcription !== "";
+}
+
+const storeKey = (context, config) => {
+  return encryptSha256(
+    context.contentId
+    + config.agenda
+    + config.transcription
+  );
+}
+
+const encryptSha256 = (str) => {
+  const hash = createHash('sha256');
+  hash.update(str);
+  return hash.digest('hex')
+}
+
+const getStoredData = async (context, config) => {
+  if (config) {
+    const key = storeKey(context, config);
+    const storedData = await storage.get(key);
+    return storedData;
+  }
+  return undefined;
+}
+
+const storeData = async (context, config, obj) => {
+  if (config) {
+    const key = storeKey(context, config);
+    return storage.set(key, obj);
+  }
+}
+
+const isStored = async (context, config) => {
+  const storedData = await getStoredData(context, config);
+  return storedData !== void 0;
+}
+
+const polarityDetect = (result) => {
+  let bigger = (result.pro > result.con) ? "pro" : "con";
+  if (result[bigger] < result["neutral"]) {
+    bigger = "neutral";
+  }
+  return bigger;
+}
 
 const AGREE_MARKER = "0x1F642";
 const DISAGREE_MARKER = "0x1F914";
@@ -207,12 +298,21 @@ const polarityMark = (agree, clusters, cIndex, sIndex) => {
 
 export const run = render(<Macro app={<App />} />);
 
-
 const Config = () => {
   return (
     <MacroConfig>
-      <TextField name="name" label="Pet name" />
-      <TextField name="age" label="Pet age" />
+      <TextArea
+        label="Agenda Items"
+        name="agenda"
+        description={AGENDA_DESC}
+        defaultValue=""
+        isRequired="true" />
+      <TextArea
+        label="Meeting Transcript"
+        name="transcription"
+        description={TRANSCRIPTION_DESC}
+        defaultValue=""
+        isRequired="true" />
     </MacroConfig>
   );
 };
