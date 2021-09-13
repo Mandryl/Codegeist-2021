@@ -119,6 +119,7 @@ const procon = async (topics, matchedClusters) => {
 const TIME_DESC = "Note: It often takes a long time to the execution which overs 10 seconds run time limit of forge."
 const AGENDA_DESC = "Please input each item of agenda per line.";
 const TRANSCRIPTION_DESC = "Please input each sentence per line.";
+const CONFIG_DESC = "Configurations aren't set. It's necessary to configure this macro.";
 
 const App = () => {
   const config = useConfig();
@@ -224,7 +225,7 @@ const App = () => {
         />
       )}
       {showConfigDesc && (
-        <Text><Strong>Configurations aren't set. It's necessary to configure this macro.</Strong></Text>
+        <Text><Strong>{CONFIG_DESC}</Strong></Text>
       )}
     </Fragment>
   );
