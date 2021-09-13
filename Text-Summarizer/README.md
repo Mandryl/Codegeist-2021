@@ -1,6 +1,4 @@
 # Text-Summarizer
-xxxxxx
-
 
 ## Requirements
 ### ■Forge
