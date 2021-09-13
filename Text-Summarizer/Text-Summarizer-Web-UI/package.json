@@ -1,0 +1,28 @@
+{
+  "name": "doclerk-summery-page",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "axios": "^0.21.4",
+    "bootstrap": "^5.0.0-beta3",
+    "next": "11.1.2",
+    "react": "17.0.2",
+    "react-bootstrap": "^1.6.3",
+    "react-dom": "17.0.2",
+    "swr": "^1.0.1"
+  },
+  "devDependencies": {
+    "@sls-next/serverless-component": "^3.3.0",
+    "@types/react": "17.0.20",
+    "eslint": "7.32.0",
+    "eslint-config-next": "11.1.2",
+    "serverless": "^2.58.0",
+    "typescript": "4.4.3"
+  }
+}
